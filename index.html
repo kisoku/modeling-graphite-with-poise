@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Modeling Graphite with Poise</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <style type="text/css">
+      @import url(http://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(http://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(http://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body {
+        font-family: 'Droid Serif';
+      }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: 400;
+        margin-bottom: 0;
+      }
+      .remark-slide-content h1 { font-size: 3em; }
+      .remark-slide-content h2 { font-size: 2em; }
+      .remark-slide-content h3 { font-size: 1.6em; }
+      .footnote {
+        position: absolute;
+        bottom: 3em;
+      }
+      li p { line-height: 1.25em; }
+      .red { color: #fa0000; }
+      .pink { color: rgb(249, 38, 114); }
+      .large { font-size: 2em; }
+      a, a > code {
+        color: rgb(249, 38, 114);
+        text-decoration: none;
+      }
+      code {
+        -moz-border-radius: 5px;
+        -web-border-radius: 5px;
+        background: #e7e8e2;
+        border-radius: 5px;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+      .remark-code-line-highlighted     { background-color: #373832; }
+      .pull-left {
+        float: left;
+        width: 47%;
+      }
+      .pull-right {
+        float: right;
+        width: 47%;
+      }
+      .pull-right ~ p {
+        clear: both;
+      }
+      #slideshow .slide .content code {
+        font-size: 0.8em;
+      }
+      #slideshow .slide .content pre code {
+        font-size: 0.9em;
+        padding: 15px;
+      }
+      .inverse {
+        background: #272822;
+        color: #777872;
+        text-shadow: 0 0 20px #333;
+      }
+      .inverse h1, .inverse h2 {
+        color: #f3f3f3;
+        line-height: 0.8em;
+      }
+
+      /* Slide-specific styling */
+      #slide-inverse .footnote {
+        bottom: 12px;
+        left: 20px;
+      }
+      #slide-how .slides {
+        font-size: 0.9em;
+        position: absolute;
+        top:  151px;
+        right: 140px;
+      }
+      #slide-how .slides h3 {
+        margin-top: 0.2em;
+      }
+      #slide-how .slides .first, #slide-how .slides .second {
+        padding: 1px 20px;
+        height: 90px;
+        width: 120px;
+        -moz-box-shadow: 0 0 10px #777;
+        -webkit-box-shadow: 0 0 10px #777;
+        box-shadow: 0 0 10px #777;
+      }
+      #slide-how .slides .first {
+        background: #fff;
+        position: absolute;
+        top: 20%;
+        left: 20%;
+        z-index: 1;
+      }
+      #slide-how .slides .second {
+        position: relative;
+        background: #fff;
+        z-index: 0;
+      }
+
+      /* Two-column layout */
+      .left-column {
+        color: #777;
+        width: 20%;
+        height: 92%;
+        float: left;
+      }
+        .left-column h2:last-of-type, .left-column h3:last-child {
+          color: #000;
+        }
+      .right-column {
+        width: 75%;
+        float: right;
+        padding-top: 1em;
+      }
+    </style>
+  </head>
+  <body>
+  <textarea id="source">
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+
+# Modeling Graphite with Poise
+
+## Mathieu Sauve-Frankel
+
+Twitter: [@kisoku](https://twitter.com/kisoku)
+Github: [kisoku](https://github.com/kisoku)
+
+---
+layout: false
+
+.left-column[
+  ##Who am I ?
+]
+
+.right-column[
+I started working as a Unix admin about 15 years ago.
+Worked on the OpenBSD ports tree for several years.
+
+My interest in Configuration Management systems goes back to 2003 when a friend showed me infrastructures.org
+
+Started using Puppet in 2004. First started using Chef in early 2009 shortly after it's first public release.
+I've been a part of the Chef Community ever since.
+
+I've been working for Qualcomm Research since 2010.
+All of the thoughts and opinions expressed in this talk are my own.
+]
+
+---
+template: inverse
+
+# What is Poise ?
+
+.pink[poise /pɔɪz/]
+
+graceful and elegant bearing in a person.pink[^W]cookbook.
+
+balance; equilibrium.
+
+---
+template: inverse
+# What is Poise ?
+
+[poise](https://github.com/poise/poise) is a collection of libraries for writing reusable cookbooks
+
+https://github.com/poise/poise
+
+authored by Noah Kantrowicz
+Twitter: [@kantrn](https://twitter.com/kantrn)
+Github: [coderanger](https://github.com/coderanger)
+
+---
+layout: false
+
+.left-column[
+  ##Poise Features
+]
+
+.right-column[
+Poise provides a toolkit of advanced features that make modeling complex applications possible.
+
+- Subresource Collections
+
+- Notifying Block
+
+- `include_recipe` inside providers
+
+- LWRP-style syntactic sugar
+
+- Advanced template and content management options
+
+- Lazy evaluation inside resources
+
+]
+
+---
+template: inverse
+
+# What is Graphite ?
+
+Graphite is a monitoring system that stores numeric time-data
+
+https://graphite.readthedocs.org
+
+---
+layout: false
+.left-column[
+## Yet Another Graphite Cookbook ?
+]
+
+.right-column[
+I'd become increasingly frustrated over the years with _recipe-style_ cookbooks that generate a very specific deployment of a given application and require you to fork the cookbook in order to customize what it does.
+
+- Existing cookbooks assumed a very simple "all-in-one" install of graphite
+
+- Needed to be able to express larger scale deployments of graphite,
+
+- Did not like the approach being taken by other implementations
+
+- Had recently used poise's features to model a complex in-house application at $work with great success
+
+- Had a mandate from my day job to refresh an aging graphite deployment
+
+- Had the freedom to open source my work
+
+]
+---
+.left-column[
+## Design Goals
+]
+
+.right-column[
+I wanted a library cookbook that would allow me to quickly experiment with different deployment layouts without having to rewrite my core code
+
+- Pure library cookbook, no recipes
+
+- Sample deployment cookbook in  test/cookbooks/graphite-test
+
+- Hierarchical tree of resources anchored by a top-level resource which manages the installation instance
+
+- Wanted the ability to configure all aspects of graphite from my cookbook
+
+- Wanted to provide users with the ability to either use the library's configuration capabilities OR supply their own config files
+
+- Wanted providers to be coded in a fashion that enabled reusability and customization through subclassing
+
+]
+
+---
+.left-column[
+## Graphite Resource
+]
+
+.right-column[
+
+The `graphite` resource is the top level resource and is required to use any of the other resources
+
+- All of the other resources in the cookbook are children of Chef::Resource::Graphite
+- This allows children objects to query parent's attribute data easily, reduces duplication
+- Responsible for performing the graphite install, 2 implementations available :virtualenv and :package
+- Discovers all child objects in the resource_collection and renders them as content for various config files
+
+```ruby
+class Chef
+  class Resource::Graphite < Chef::Resource
+    include Poise
+    include Poise::Resource::SubResourceContainer
+
+    actions(:install, :uninstall, :nothing)
+
+    attribute(:path, kind_of: String, default: '/opt/graphite',
+               name_attribute: true)
+    attribute(:user, kind_of: String, default: 'graphite')
+    attribute(:uid, kind_of: Fixnum)
+    attribute(:group, kind_of: String, default: 'graphite')
+    attribute(:gid, kind_of: Fixnum)
+    attribute(:bin_dir, kind_of: String,
+    	       default: lazy { "#{path}/bin" })
+    attribute(:conf_dir, kind_of: String,
+	       default: lazy { "#{path}/conf" })
+    attribute(:local_data_dir, kind_of: String,
+	       default: lazy { "#{storage_dir}/whisper" })
+    attribute(:log_dir, kind_of: String,
+	       default: lazy { "#{storage_dir}/log" })
+    attribute(:storage_dir, kind_of: String,
+	       default: lazy { "#{path}/storage" })
+    attribute(:whisper_dir, kind_of: String,
+	       default: lazy { "#{storage_dir}/whisper" })
+    attribute(:ceres_dir, kind_of: String,
+	       default: lazy { "#{storage_dir}/ceres" })
+    attribute(:rrd_dir, kind_of: String,
+	       default: lazy { "#{storage_dir}/rrd" })
+
+    ...
+  end
+end
+```
+]
+
+---
+.left-column[
+## Service Subresources
+]
+
+.right-column[
+These resources all represent services that can be instantiated from a given graphite instance.
+
+- [graphite_web](https://github.com/kisoku/graphite-chef/blob/master/libraries/graphite_web.rb)
+- [carbon_aggregator](https://github.com/kisoku/graphite-chef/blob/master/libraries/carbon.rb#L168)
+- [carbon_cache](https://github.com/kisoku/graphite-chef/blob/master/libraries/carbon.rb#L128)
+- [carbon_relay](https://github.com/kisoku/graphite-chef/blob/master/libraries/carbon.rb#L144)
+
+```ruby
+graphite '/opt/graphite'
+
+carbon_cache 'a' do
+  line_receiver_interface '127.0.0.1'
+  line_receiver_port 2010
+  pickle_receiver_interface '127.0.0.1'
+  pickle_receiver_port 2011
+  cache_query_interface '127.0.0.1'
+  cache_query_port 7012
+end
+
+carbon_relay 'a' do
+  line_receiver_interface '0.0.0.0'
+  line_receiver_port 2003
+  pickle_receiver_interface '0.0.0.0'
+  pickle_receiver_port 2004
+  relay_method 'consistent-hashing'
+end
+
+graphite_web 'gunicorn' do
+  carbonlink_hosts lazy {
+    parent.carbon_caches.collect {|r|
+      "#{r.cache_query_interface}:#{r.cache_query_port}"
+    }
+  }
+  database 'graphite' do
+    ...
+  end
+end
+```
+]
+
+---
+.left-column[
+## Configuration Subresources
+]
+
+.right-column[
+
+The majority of graphite's subresources can be called to produce valid configuration fragments
+The graphite resource discovers all subresources in the resource collection at converge time, renders them and injects the content into the configuration file resources it manages.
+
+- [aggregation_rule](https://github.com/kisoku/graphite-chef/blob/master/libraries/aggregation_rule.rb)
+- [carbon_aggregator](https://github.com/kisoku/graphite-chef/blob/master/libraries/carbon.rb)
+- [carbon_cache](https://github.com/kisoku/graphite-chef/blob/master/libraries/carbon.rb)
+- [carbon_relay](https://github.com/kisoku/graphite-chef/blob/master/libraries/carbon.rb)
+- [graphite_database](https://github.com/kisoku/graphite-chef/blob/master/libraries/graphite_database.rb)
+- [relay_rule](https://github.com/kisoku/graphite-chef/blob/master/libraries/relay_rule.rb)
+- [storage_aggregation_rule](https://github.com/kisoku/graphite-chef/blob/master/libraries/storage_aggregation_rule.rb)
+- [storage_schema_rule](https://github.com/kisoku/graphite-chef/blob/master/libraries/storage_schema_rule.rb)
+- blacklists and whitelists are currently not implemented, PRs welcome!
+
+```ruby
+graphite '/opt/graphite'
+
+graphite_storage_schema_rule 'carbon' do
+  pattern '^carbon\.'
+  retentions '60:90d'
+end
+
+graphite_storage_schema_rule 'default_1min_for_1day' do
+  pattern '.*'
+  retentions '60s:1d'
+end
+```
+]
+
+---
+.left-column[
+## ConfigBuilder
+]
+
+.right-column[
+Graphite has a very large number of configuration options and several slightly different configuration file formats.
+
+The [ConfigBuilder](https://github.com/kisoku/graphite-chef/blob/master/libraries/config_builder.rb) helper module extends the `attribute` method to allow us to mark which resource attributes will be converted to configuration content.
+
+The mixin also allows us to define formatting methods to convert standard ruby objects to the format required. This allows consumers of the graphite cookbook to write idiomatic ruby and not have to worry about what format the graphite application expects.
+
+```ruby
+class Chef
+  class Resource::GraphiteAggregationRule < Chef::Resource
+    include Poise(parent: Graphite)
+    include ConfigBuilder
+
+    actions(:nothing)
+
+    attribute(:output_template, kind_of: String, required: true,
+               config_attribute: true)
+    attribute(:frequency, kind_of: Fixnum, required: true,
+               config_attribute: true)
+    attribute(:method, kind_of: String, required: true,
+               config_attribute: true)
+    attribute(:input_pattern, kind_of: String, required: true,
+               config_attribute: true)
+
+    def to_conf
+      "#{output_template} (#{frequency}) = #{method} #{input_pattern}"
+    end
+  end
+```
+
+]
+
+---
+.left-column[
+## Conclusions
+]
+
+.right-column[
+This cookbook took about 2 weeks of full-time work to write from scratch, working out the details of config_builder.rb
+being the part that took the longest
+
++ Poise is an awesome toolkit for modeling complex application stacks
+
++ Excellent learning experience, as some knowledge of Chef client internals is required to understand poise
+
++ config_builder will probably be refactored into a general purpose library in the near future as I am using this code in several other cookbooks
+]
+---
+template: inverse
+# .pink[PSA]: Coderanger rocks
+
+None of this would have been possible without Noah's work on Poise
+
+Noah is an awesome Chef, please fund his work by contributing to his kickstarter campaign
+
+https://www.kickstarter.com/projects/coderanger/delightful-application-deployment-with-chef
+    </textarea>
+    <script src="remark-0.5.9.min.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+        var slideshow = remark.create({
+            highlightStyle: 'monokai',
+            highlightLanguage: 'ruby'
+        });
+    </script>
+  </body>
+</html>
